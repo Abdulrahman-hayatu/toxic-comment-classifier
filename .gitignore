@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Data (raw data files excluded, but processed models included)
+data/train.csv
+data/test.csv
+
+# Models (stored on Hugging Face Hub instead of git)
+models/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+.4.34.0
+.4.40.0
