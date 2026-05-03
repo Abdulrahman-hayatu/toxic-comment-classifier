@@ -1,29 +1,31 @@
 """
 Defines the shape of API requests and responses using Pydantic.
-This ensures that incoming data is validated and that our API responses are well-structured and documented.
+This ensures that incoming data is validated and that our API responses
+are well-structured and documented.
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional, Dict
 
 
 class PredictionRequest(BaseModel):
     """What the API caller must send."""
-    
+
     text: str = Field(
-        ...,  # ... means required, no default
+        ...,
         min_length=1,
         max_length=5000,
         description="The comment text to classify",
-        example="You are absolutely terrible and should be ashamed."
+        json_schema_extra={"example": "You are absolutely terrible and should be ashamed."} 
     )
-    
+
     quantify_uncertainty: bool = Field(
         default=True,
         description="Whether to include uncertainty estimates in the response (default: True)"
     )
-    
-    @validator('text')
+
+    @field_validator('text')
+    @classmethod
     def text_must_not_be_whitespace(cls, v):
         if v.strip() == "":
             raise ValueError("text cannot be empty or whitespace only")
@@ -32,36 +34,30 @@ class PredictionRequest(BaseModel):
 
 class BatchPredictionRequest(BaseModel):
     """For classifying multiple comments at once."""
-    
+
     texts: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=50,
+        min_length=1,  
+        max_length=50,  
         description="List of comments to classify (max 50 per request)"
     )
-    
-    quantify_uncertainty: bool = Field(default=False)  # default False for batch (speed)
+
+    quantify_uncertainty: bool = Field(default=False)
 
 
 class LabelPrediction(BaseModel):
     """Prediction details for a single label."""
-    
-    predicted: bool             # True if label is predicted positive
-    probability: float          # confidence score 0.0 to 1.0
-    uncertainty: Optional[float] = None  # epistemic uncertainty (if computed)
+
+    predicted: bool
+    probability: float
+    uncertainty: Optional[float] = None
 
 
 class PredictionResponse(BaseModel):
     """The full API response for a single text."""
-    
-    text: str
-    risk_tier: str                          # "HIGH", "MEDIUM", "LOW", "CLEAN"
-    flagged_labels: List[str]               # which labels were predicted positive
-    requires_human_review: bool             # True if uncertainty is high
-    predictions: Dict[str, LabelPrediction] # detailed per-label predictions
-    
-    class Config:
-        schema_extra = {
+
+    model_config = ConfigDict(         
+        json_schema_extra={             
             "example": {
                 "text": "You are terrible",
                 "risk_tier": "MEDIUM",
@@ -73,6 +69,13 @@ class PredictionResponse(BaseModel):
                 }
             }
         }
+    )
+
+    text: str
+    risk_tier: str
+    flagged_labels: List[str]
+    requires_human_review: bool
+    predictions: Dict[str, LabelPrediction]
 
 
 class HealthResponse(BaseModel):
