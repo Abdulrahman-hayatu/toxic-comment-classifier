@@ -24,7 +24,7 @@ The core engineering challenge: **building a reliable classifier under realistic
 
 | Capability | Implementation |
 |---|---|
-| **Few-shot NLP** | SetFit with 16 examples/class via contrastive learning |
+| **Few-shot NLP** | SetFit with 64 examples/class via contrastive learning |
 | **Multi-label classification** | One-vs-rest architecture across 6 independent labels |
 | **Uncertainty quantification** | Input perturbation-based confidence estimation |
 | **Model explainability** | Per-prediction SHAP word-level attributions |
@@ -63,7 +63,7 @@ Evaluated on a **stratified 500-sample test set** guaranteeing minimum represent
 | `identity_hate` | **0.59** | 0.60 | 0.56 | 0.64 | 0.09 |
 | `severe_toxic` | **0.55** | 0.56 | 0.52 | 0.61 | 0.22 |
 
-**Trained with 16 labeled examples per class.** Lower performance on rare labels (`threat`, `severe_toxic`) is expected at this data volume — PR-AUC still represents 8–10× lift over random baselines.
+**Trained with 64 labeled examples per class.** Lower performance on rare labels (`threat`, `severe_toxic`) is expected at this data volume — PR-AUC still represents 8–10× lift over random baselines.
 
 ### Optimised Decision Thresholds
 
@@ -309,6 +309,25 @@ MC Dropout requires keeping dropout active at inference time, which needs direct
 
 ---
 
+## Known Limitations
+
+- **Short-text false positives:** Few-shot training with 64 examples per class is
+  insufficient to reliably distinguish short affectionate phrases ("I love you",
+  "I miss you") from toxic content. Both share surface features — first-person
+  construction, direct address — that the model conflates without enough
+  contrastive examples. A rule-based safe-phrase pre-filter is applied as a
+  practical mitigation.
+
+- **Rare label calibration:** `threat` (0.3% prevalence) and `severe_toxic`
+  (1.0% prevalence) produce poorly calibrated probability scores under few-shot
+  training. The model ranks threats above non-threats correctly (PR-AUC 0.65)
+  but assigns low absolute probabilities, requiring very low decision thresholds.
+
+- **Evaluation distribution shift:** Optimal thresholds are derived on a
+  stratified evaluation set that overrepresents rare classes relative to
+  production. Thresholds may require recalibration when deployed against
+  real-world traffic.
+
 ## Deployment
 
 The application is containerised with Docker and deployable to any cloud platform without code changes.
@@ -316,26 +335,6 @@ The application is containerised with Docker and deployable to any cloud platfor
 ### Render (Current Deployment)
 
 Deployed at `https://your-app.onrender.com`. Render's free tier hibernates after 15 minutes of inactivity the first request after hibernation incurs a ~30 second cold start while the container restarts and all six models reload into memory. This is a free-tier characteristic, not an architectural limitation.
-
-### Google Cloud Run
-
-```bash
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/toxic-classifier
-gcloud run deploy toxic-classifier \
-  --image gcr.io/YOUR_PROJECT_ID/toxic-classifier \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 2Gi
-```
-
-Cloud Run scales to zero when idle (zero cost at rest) and scales horizontally under load with automatic HTTPS.
-
-### AWS / Azure
-
-The same Dockerfile deploys to AWS ECS (Fargate) or Azure Container Apps without modification — the container exposes port 8000 and reads `$PORT` from the environment, matching the conventions of all major cloud container platforms.
-
----
 
 ## Tech Stack
 
