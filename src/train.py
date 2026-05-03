@@ -130,7 +130,7 @@ def train_all_models(
     metadata = {
         "labels": LABEL_COLS,
         "base_model": "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        "n_shots": 16
+        "n_shots": 64
     }
     with open(MODELS_DIR / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     from .data_prep import create_label_summary
     df = create_label_summary(df)
     
-    train_df, val_df, test_df = prepare_for_setfit(df, n_shots=16)
+    train_df, val_df, test_df = prepare_for_setfit(df, n_shots=64)
     
     # Save test set for evaluation later
     test_df.to_csv("data/test_split.csv", index=False)

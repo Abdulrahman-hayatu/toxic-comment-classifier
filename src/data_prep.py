@@ -77,7 +77,7 @@ def create_label_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def prepare_for_setfit(
     df: pd.DataFrame,
-    n_shots: int = 16,
+    n_shots: int = 64,
     val_size: float = 0.1,
     random_seed: int = 42
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
