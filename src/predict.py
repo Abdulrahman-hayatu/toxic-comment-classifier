@@ -12,6 +12,22 @@ The Prediction dataclass encapsulates the output format, which includes:
 - requires_review: a boolean indicating if any prediction has high uncertainty and should be reviewed by a human
 
 """
+# This file contains the core prediction logic and model wrapper class.
+SAFE_PHRASE_PATTERNS = [
+    r'\bi love you\b',
+    r'\bi miss you\b', 
+    r'\bi need you\b',
+    r'\bthank you\b',
+    r'\bplease help\b',
+]
+
+import re
+
+from matplotlib.pyplot import text
+
+def is_obviously_safe(text: str) -> bool:
+    text_lower = text.lower().strip()
+    return any(re.search(pattern, text_lower) for pattern in SAFE_PHRASE_PATTERNS)
 
 import json
 import numpy as np
@@ -33,6 +49,14 @@ def load_thresholds(path: str = "models/optimal_thresholds.json") -> dict:
     return {label: 0.5 for label in LABEL_COLS}
 
 THRESHOLDS = load_thresholds()
+MIN_PROBABILITY_FLOOR = {
+    'toxic':         0.40,  # never flag below 40% raw probability
+    'severe_toxic':  0.30,
+    'obscene':       0.20,
+    'threat':        0.35,  # critically important
+    'insult':        0.20,
+    'identity_hate': 0.20,
+}
 
 
 @dataclass
@@ -97,32 +121,32 @@ class ToxicityClassifier:
         self,
         text: str,
         n_iterations: int = 10
-    ) -> Dict[str, float]:
+    ) -> tuple[dict, bool]:  # always returns (uncertainty_dict, force_review_bool)
+        '''
+        Estimate epistemic uncertainty by creating perturbations of the input text
+        and measuring the variance in predictions. This simulates how much the model's predictions would change if the input were slightly different, which is a proxy for uncertainty.
+        '''
         words = text.split()
-         # Return zero uncertainty (unknown, not confident) and flag for review
-        if len(words) < 6:
-            return {label: 0.0 for label in self.labels}, True  # second value = force_review
-        """
-        Estimate epistemic uncertainty using prediction variance.
-        We create multiple perturbed versions of the input text (e.g., by dropping random words)
-        and get predictions for each. The standard deviation of these predictions gives us an uncertainty estimate.
 
-        """
+        # Cannot meaningfully perturb very short texts
+        if len(words) < 6:
+            return {label: 0.0 for label in self.labels}, True  # ← tuple
+
         perturbations = self._create_perturbations(text, n=n_iterations)
-        
+
         all_probs = {label: [] for label in self.labels}
-        
+
         for perturbed_text in perturbations:
             probs = self._get_probabilities(perturbed_text)
             for label, prob in probs.items():
                 all_probs[label].append(prob)
-        
-        # Uncertainty = standard deviation of probabilities across perturbations
-        uncertainty = {}
-        for label, prob_list in all_probs.items():
-            uncertainty[label] = float(np.std(prob_list))
-        
-        return uncertainty
+
+        uncertainty = {
+            label: float(np.std(prob_list))
+            for label, prob_list in all_probs.items()
+        }
+
+        return uncertainty, False  # ← also a tuple, force_review=False
     
     def _create_perturbations(self, text: str, n: int = 10) -> List[str]:
         """
@@ -151,7 +175,7 @@ class ToxicityClassifier:
     ) -> str:
         """
         Assign a human-readable risk tier based on predicted labels.
-            This is a simple heuristic that prioritizes certain labels. For example,
+        This is a simple heuristic that prioritizes certain labels. For example,
         severe toxicity and threats are considered "HIGH" risk, while insults and obscenities are "MEDIUM".
 
         """
@@ -170,7 +194,17 @@ class ToxicityClassifier:
         quantify_uncertainty: bool = True,
         uncertainty_threshold: float = 0.15
     ) -> Prediction:
-        
+        # Short-circuit for obviously safe phrases to save compute and avoid false positives on very common non-toxic comments.
+        if is_obviously_safe(text):
+             return Prediction(
+                text=text,
+                labels={label: 0 for label in self.labels},
+                probabilities={label: 0.0 for label in self.labels},
+                uncertainty={label: 0.0 for label in self.labels},
+                risk_tier="CLEAN",
+                flagged_labels=[],
+                requires_review=False
+        )
         """
         Full prediction pipeline with optional uncertainty quantification.
         
@@ -178,44 +212,35 @@ class ToxicityClassifier:
         # For very short texts, we may not have enough context for reliable predictions.
         # In this case, we can choose to return zero probabilities and flag for review.
 
-        uncertainty, force_review = self._perturbation_uncertainty(text)
-        requires_review = force_review or any(u > uncertainty_threshold for u in uncertainty.values())
-        
         # Get probabilities
         probs = self._get_probabilities(text)
-        
-        # Apply thresholds to get binary labels
-        # In the predict() method, replace the binary label logic with:
-        MIN_PROBABILITY_FLOOR = {
-            'toxic':         0.40,  # never flag below 40% raw probability
-            'severe_toxic':  0.30,
-            'obscene':       0.20,
-            'threat':        0.35,  # critically important
-            'insult':        0.20,
-            'identity_hate': 0.20,
-            }
 
+        # Apply thresholds to get binary labels
         binary_labels = {
-            label: int(
-                probs[label] >= THRESHOLDS[label] and 
-                probs[label] >= MIN_PROBABILITY_FLOOR[label]  # both conditions must pass
-        )
-        for label in self.labels
+                label: int(
+                    probs[label] >= THRESHOLDS[label] and 
+                    probs[label] >= MIN_PROBABILITY_FLOOR[label]  # both conditions must pass
+            )
+            for label in self.labels
         }
-            # Uncertainty quantification
+        # Determine which labels are flagged based on thresholds
+        flagged  = [label for label, pred in binary_labels.items() if pred == 1]
+
+        # assign risk tier based on predicted labels and probabilities
+        risk_tier = self._assign_risk_tier(probs, binary_labels)
+        
+        # Uncertainty quantification
         uncertainty = {}
+        force_review = False
+
         if quantify_uncertainty:
-            uncertainty = self._perturbation_uncertainty(text)
-            
-            # Determine flagged labels and risk tier
-            flagged = [label for label, pred in binary_labels.items() if pred == 1]
-            risk_tier = self._assign_risk_tier(probs, binary_labels)
-            
-            # Review flag — any high uncertainty prediction needs human eyes
-            requires_review = any(
-                u > uncertainty_threshold
-                for u in uncertainty.values()
-            ) if uncertainty else False
+            uncertainty, force_review = self._perturbation_uncertainty(text)  # unpack tuple
+
+        # Determine review flag
+        requires_review = force_review or any(
+            u > uncertainty_threshold
+            for u in uncertainty.values()  # now always called on the dict, never the tuple
+        )
         
         return Prediction(
             text=text,
