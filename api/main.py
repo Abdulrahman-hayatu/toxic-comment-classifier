@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import time
 import logging
+from fastapi.responses import RedirectResponse
 
 from api.schemas import (
     PredictionRequest,
@@ -23,8 +24,7 @@ from predict import ToxicityClassifier, LABEL_COLS
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI with metadata
-# This metadata auto-populates the /docs page
+# Initialize FastAPI with metadata and lifespan handler for startup/shutdown events
 app = FastAPI(
     title="Toxic Comment Classifier API",
     description="""
@@ -45,14 +45,13 @@ app = FastAPI(
     - `CLEAN`: No harmful content detected
     """,
     version="1.0.0",
-    lifespan=lifespan  # use our startup/shutdown handler
+    lifespan=lifespan
 )
 
-# CORS: allows browsers from other domains to call this API
-# Important for any frontend that will consume this API
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to your frontend domain
+    allow_origins=["*"], 
     allow_methods=["GET", "POST"],
     allow_headers=["*"]
 )
@@ -158,3 +157,8 @@ async def get_labels():
             "identity_hate": "Hate speech targeting identity characteristics"
         }
     }
+
+# Root endpoint redirects to API docs for easy access
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
