@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: toxic-comment-classifier
+    runtime: docker
+    plan: free
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: PORT
+        value: 10000
