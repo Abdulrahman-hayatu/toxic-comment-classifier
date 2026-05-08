@@ -18,7 +18,7 @@ app_port: 7860
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-**[Live API Demo](https://your-app.onrender.com/docs)** · **[Dataset](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)** · **[LinkedIn](https://linkedin.com/in/abdulrahman-hayatu)**
+**[Live API Demo](https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier)** · **[Dataset](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)** · **[LinkedIn](https://linkedin.com/in/abdulrahman-hayatu)**
 
 ---
 
@@ -145,7 +145,7 @@ SetFit's contrastive learning phase is a binary comparison mechanism it learns b
 ### Example Request
 
 ```bash
-curl -X POST "https://your-app.onrender.com/predict" \
+curl -X POST "https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier/predict" \
   -H "Content-Type: application/json" \
   -d '{"text": "You are absolutely terrible and should be ashamed.", "quantify_uncertainty": true}'
 ```
@@ -344,7 +344,7 @@ The application is containerised with Docker and deployable to any cloud platfor
 
 ### Render (Current Deployment)
 
-Deployed at `https://your-app.onrender.com`. Render's free tier hibernates after 15 minutes of inactivity the first request after hibernation incurs a ~30 second cold start while the container restarts and all six models reload into memory. This is a free-tier characteristic, not an architectural limitation.
+Deployed at `https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier`. Huggingface space
 
 ## Tech Stack
 
@@ -392,16 +392,5 @@ BSc Computer Science — Ahmadu Bello University, Zaria
 ## License
 
 Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
-
----
-title: Toxic Comment Classifier
-emoji: 🌖
-colorFrom: red
-colorTo: purple
-sdk: docker
-pinned: false
-license: apache-2.0
-short_description: A multi-label NLP classifier built on the Jigsaw dataset.
----
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
