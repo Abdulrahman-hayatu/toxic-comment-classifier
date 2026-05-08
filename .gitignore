@@ -10,6 +10,9 @@ data/test.csv
 data/test_split.csv
 data/test_labels.csv
 
+# plots
+plots/*.png
+plots/*.jpg
 # Models
 models/
 
