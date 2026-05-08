@@ -1,5 +1,5 @@
 # This Dockerfile sets up a container for a FastAPI app that uses a Hugging Face model.
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory inside the container
 WORKDIR /app
