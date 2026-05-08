@@ -15,12 +15,14 @@ RUN pip install --no-cache-dir huggingface-hub && \
 # Copy source code
 COPY src/ ./src/
 COPY api/ ./api/
+COPY models/ ./models/
 
 # Set PYTHONPATH to include the app directory so we can import modules from src and api
 ENV PYTHONPATH=/app
+ENV PORT=7860
 
 # The port our FastAPI app listens on
-ENV PORT=8000
+ENV PORT=7860
 
 # Start the server
 CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
