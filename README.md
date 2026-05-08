@@ -360,7 +360,7 @@ Deployed at `https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-clas
 | **Evaluation** | scikit-learn (PR curves, classification reports) |
 | **Visualisation** | Matplotlib, Seaborn |
 | **Testing** | Pytest, HTTPX |
-| **Deployment** | Render (Docker) |
+| **Deployment** | Huggingface spaces |
 | **Version Control** | Git, GitHub |
 
 ---
