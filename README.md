@@ -1,3 +1,13 @@
+---
+title: Toxic Comment Classifier
+emoji: 🛡️
+colorFrom: red
+colorTo: blue
+sdk: docker
+pinned: false
+license: apache-2.0
+app_port: 7860
+---
 # 🛡️ Toxic Comment Classifier
 
 > Multi-label toxic comment classification with few-shot learning, uncertainty quantification, and SHAP explainability deployed as a production REST API.
