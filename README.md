@@ -34,7 +34,7 @@ The core engineering challenge: **building a reliable classifier under realistic
 
 | Capability | Implementation |
 |---|---|
-| **Few-shot NLP** | SetFit with 64 examples/class via contrastive learning |
+| **Few-shot NLP** | SetFit with 16 examples/class via contrastive learning |
 | **Multi-label classification** | One-vs-rest architecture across 6 independent labels |
 | **Uncertainty quantification** | Input perturbation-based confidence estimation |
 | **Model explainability** | Per-prediction SHAP word-level attributions |
