@@ -26,7 +26,7 @@ app_port: 7860
 
 This project implements a **production-grade NLP pipeline** for detecting toxic content across six categories simultaneously. Rather than treating toxicity as a binary problem, the system classifies each comment across six independent labels recognising that a comment can be simultaneously toxic, obscene, and insulting.
 
-The core engineering challenge: **building a reliable classifier under realistic data constraints**. Instead of training on hundreds of thousands of labeled examples (impractical in most production settings), the system achieves competitive performance using only **16 labeled examples per class** through few-shot learning with SetFit. Every prediction is accompanied by a confidence score, a risk tier, and word-level SHAP explanations — making the system auditable and suitable for responsible deployment.
+The core engineering challenge: **building a reliable classifier under realistic data constraints**. Instead of training on hundreds of thousands of labeled examples (impractical in most production settings), the system achieves competitive performance using only **64 labeled examples per class** through few-shot learning with SetFit. Every prediction is accompanied by a confidence score, a risk tier, and word-level SHAP explanations — making the system auditable and suitable for responsible deployment.
 
 ---
 
@@ -34,13 +34,13 @@ The core engineering challenge: **building a reliable classifier under realistic
 
 | Capability | Implementation |
 |---|---|
-| **Few-shot NLP** | SetFit with 16 examples/class via contrastive learning |
+| **Few-shot NLP** | SetFit with 64 examples/class via contrastive learning |
 | **Multi-label classification** | One-vs-rest architecture across 6 independent labels |
 | **Uncertainty quantification** | Input perturbation-based confidence estimation |
 | **Model explainability** | Per-prediction SHAP word-level attributions |
 | **Production API design** | FastAPI with Pydantic validation, health checks, batch endpoints |
 | **Responsible ML** | Human review routing for low-confidence predictions |
-| **Cloud deployment** | Docker containerisation deployed to Render |
+| **Cloud deployment** | Docker containerisation deployed to Hugging Face Spaces |
 | **Evaluation rigour** | Stratified sampling to handle extreme class imbalance |
 
 ---
@@ -145,7 +145,7 @@ SetFit's contrastive learning phase is a binary comparison mechanism it learns b
 ### Example Request
 
 ```bash
-curl -X POST "https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier/predict" \
+curl -X POST "https://abdulrahman-hayatu-toxic-comment-classifier.hf.space/predict" \
   -H "Content-Type: application/json" \
   -d '{"text": "You are absolutely terrible and should be ashamed.", "quantify_uncertainty": true}'
 ```
@@ -342,9 +342,11 @@ MC Dropout requires keeping dropout active at inference time, which needs direct
 
 The application is containerised with Docker and deployable to any cloud platform without code changes.
 
-### Render (Current Deployment)
+### Hugging Face Spaces (Current Deployment)
 
-Deployed at `https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier`. Huggingface space
+Deployed as a Docker Space at [huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier](https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-classifier). The API itself is served at `https://abdulrahman-hayatu-toxic-comment-classifier.hf.space` (interactive docs at `/docs`).
+
+`render.yaml` is kept as an alternative Render deployment config.
 
 ## Tech Stack
 
@@ -360,7 +362,7 @@ Deployed at `https://huggingface.co/spaces/Abdulrahman-Hayatu/toxic-comment-clas
 | **Evaluation** | scikit-learn (PR curves, classification reports) |
 | **Visualisation** | Matplotlib, Seaborn |
 | **Testing** | Pytest, HTTPX |
-| **Deployment** | Huggingface spaces |
+| **Deployment** | Hugging Face Spaces (Docker) |
 | **Version Control** | Git, GitHub |
 
 ---
